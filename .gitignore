@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# Configuration and Secrets
+.env
+.idea/
+.vscode/
+
+# Output local dumps (Keep the folder structure, ignore massive continuous logs)
+debug_output/*
+!debug_output/.gitkeep
+!debug_output/global_annotated_final*.png
