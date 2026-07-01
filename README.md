@@ -1,4 +1,4 @@
-# Autonomous Desktop Automation Agent with Resilient Spatial Grounding
+#  Vision-Based Desktop Automation with Dynamic Icon Grounding
 
 [![Python Version](https://img.shields.io/badge/python-3.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![Package Manager](https://img.shields.io/badge/managed%20by-uv-purple.svg)](https://github.com/astral-sh/uv)

@@ -12,6 +12,7 @@ class OSAgent:
         self.dpi_scale = self._get_dpi_scaling()
         # Track if input is blocked so we can safely unblock on destruction
         self.input_blocked = False
+        self.sweeper_triggered = False
 
     def _get_dpi_scaling(self) -> float:
         """Calculates exact Windows DPI scaling factor for high-res screens."""
@@ -60,6 +61,7 @@ class OSAgent:
                         win.minimize() # Push to background
                         # Or use win.close() if you want to aggressively kill it
                         logging.info(f"🧹 Sweeper successfully neutralized window: '{win.title}'")
+                        self.sweeper_triggered = True
                     except Exception as e:
                         logging.error(f"🧹 Sweeper failed to clear window '{win.title}': {e}")
         except Exception as e:
@@ -85,30 +87,44 @@ class OSAgent:
         return False
 
     def inject_text_and_save(self, title: str, body: str, filepath: str):
+        """Uses the OS clipboard to instantly paste payloads, drastically lowering execution time."""
+        import pyperclip # Import dynamically to maintain clean initialization
         content = f"Title: {title}\n\n{body}"
 
+        # 1. Focus the center of the application window canvas
         screen_w, screen_h = pyautogui.size()
         pyautogui.click(screen_w / 2, screen_h / 2)
 
+        # 2. Clear out any lingering session text cleanly
         logging.info("Clearing canvas to handle Windows session-restore quirks...")
         pyautogui.hotkey('ctrl', 'a')
         pyautogui.press('backspace')
 
-        logging.info("Injecting text payload...")
-        pyautogui.write(content, interval=0.01)
+        # 3. --- OPTIMIZED INJECTION ROUTINE ---
+        logging.info("Pushing text payload to Windows clipboard buffer...")
+        pyperclip.copy(content) # Load text string into memory instantly
+        time.sleep(0.1)        # Yield a brief millisecond slice for OS sync
 
+        logging.info("Executing immediate paste action (Ctrl+V)...")
+        pyautogui.hotkey('ctrl', 'v') # Instant injection bypasses character typing delays
+
+        # 4. Trigger Save Dialog box sequence
         logging.info(f"Forcing 'Save As' dialog for {filepath}")
         pyautogui.hotkey('ctrl', 'shift', 's')
         time.sleep(1)
 
-        pyautogui.write(filepath)
+        # 5. Paste the absolute destination path directly into the dialog box as well
+        pyperclip.copy(filepath)
+        time.sleep(0.1)
+        pyautogui.hotkey('ctrl', 'v')
         pyautogui.press('enter')
         time.sleep(1)
 
+        # Blindly step through existing file replacement warnings
         pyautogui.press('left')
         pyautogui.press('enter')
 
+        # 6. Tear down application process cleanly
         time.sleep(0.5)
         logging.info("Terminating Notepad process cleanly via recursive tree flag...")
-        # Added /t flag to prune the process tree safely
         os.system("taskkill /f /im notepad.exe /t >nul 2>&1")

@@ -12,8 +12,9 @@ ENV/
 .env
 .idea/
 .vscode/
+*.iml
 
 # Output local dumps (Keep the folder structure, ignore massive continuous logs)
 debug_output/*
 !debug_output/.gitkeep
-!debug_output/global_annotated_final*.png
+!debug_output/global_annotated_center.png

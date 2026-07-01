@@ -46,7 +46,7 @@ def run_workflow_loop():
     pyautogui.hotkey('win', 'd')
     time.sleep(1.5)
 
-    posts = fetch_posts(1)
+    posts = fetch_posts(10)
     vision = VisionEngine()
     agent_instance = OSAgent()
 
@@ -67,7 +67,8 @@ def run_workflow_loop():
             start_time = time.time()
 
             # 1. Ground Icon
-            target_x, target_y = vision.ground_icon()
+            target_shortcut_label = "Notepad"
+            target_x, target_y = vision.ground_icon(target_shortcut_label)
             if abort_automation: break
 
             grounding_duration = time.time() - start_time
@@ -76,6 +77,16 @@ def run_workflow_loop():
             # 2. Execute Click
             agent_instance.double_click_icon(target_x, target_y)
             if abort_automation: break
+
+            if not agent_instance.wait_for_window("Notepad"):
+                logging.warning("⚠️ Notepad focus blocked. Executing reactive emergency sweeper pass...")
+
+                # Run an emergency sweeper strike to clear whatever just popped up
+                agent_instance.dismiss_system_modals()
+
+                # Final attempt to verify if Notepad is now accessible
+                if not agent_instance.wait_for_window("Notepad"):
+                    raise RuntimeError("Notepad window failed to appear even after emergency modal sweeping.")
 
             # 3. Validate OS State
             if not agent_instance.wait_for_window("Notepad"):
@@ -106,6 +117,19 @@ def run_workflow_loop():
     if agent_instance:
         agent_instance.set_hardware_input_block(False)
     logging.info("Workflow loop thread finished execution cleanly.")
+
+    if not abort_automation:
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if agent_instance and agent_instance.sweeper_triggered:
+            title = "Automation Complete (Mitigation Triggered)"
+            message = "The workflow finished successfully!\n\n⚠️ Note: The Modal Sweeper detected and neutralized environmental window obstructions during this run."
+            icon_type = 0x40 | 0x20  # Information sign + Warning icon combo
+        else:
+            title = "Automation Complete"
+            message = "The workflow finished successfully with zero environmental obstructions."
+            icon_type = 0x40  # Clean Information sign icon
+
+        ctypes.windll.user32.MessageBoxW(hwnd, message, title, icon_type)
 
 if __name__ == "__main__":
     # 1. Spin up the Keyboard Hook Listener in the foreground main thread

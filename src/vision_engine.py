@@ -39,7 +39,7 @@ class VisionEngine:
             logging.error(f"Failed to parse JSON from Gemini: {e}")
             return {}
 
-    def ground_icon(self) -> tuple[float, float]:
+    def ground_icon(self, target_name: str = "Notepad") -> tuple[float, float]:
         self.debug_count += 1
         full_screen_path = self.capture_screen()
 
@@ -55,23 +55,23 @@ class VisionEngine:
             {"name": "Bottom-Right", "box": (mid_x, mid_y, width, height)}
         ]
 
-        prompt = """
+        prompt = f"""
         You are an OS automation assistant inspecting a high-resolution desktop segment.
         Task: Locate the Windows "Notepad" application shortcut icon.
 
         CRITICAL VISUAL RECOGNITION RULES:
         1. PRIMARY VISUAL: Look for a predominantly BLUE and WHITE icon (typically a blue spiral notebook or a blue square with a white page).
-        2. SECONDARY CONFIRMATION: The text label directly underneath the graphic will usually contain the word "Notepad".
+        2. SECONDARY CONFIRMATION: The text label directly underneath the graphic will usually contain the word "{target_name}".
         3. EXCLUSIONS: Strictly ignore all yellow folders, image thumbnails, and generic document files.
         4. TARGETING: Return the exact center coordinate of the BLUE/WHITE ICON GRAPHIC itself, completely ignoring the text label.
         
         Return coordinates using a NORMALIZED scale between 0 and 1000 across this image snippet (0,0 is top-left, 1000,1000 is bottom-right).
         
         Return ONLY this JSON format:
-        {"status": "FOUND", "x": 500, "y": 500}
-        
+        {{"status": "FOUND", "x": 500, "y": 500}}
+    
         If the Notepad icon is not inside this image segment, return exactly:
-        {"status": "NOT_FOUND"}
+        {{"status": "NOT_FOUND"}}
         """
 
         # Scan quadrants sequentially until the icon is accurately localized
@@ -110,7 +110,7 @@ class VisionEngine:
                 cv2.rectangle(full_img, (global_x - 30, global_y - 30), (global_x + 30, global_y + 30), (0, 0, 255), 5)
 
                 # 5. Save the final "Global Audit"
-                cv2.imwrite(str(DEBUG_DIR / "global_annotated_final.png"), full_img)
+                cv2.imwrite(str(DEBUG_DIR / "global_annotated.png"), full_img)
 
                 # Convert the normalized coordinates back into quadrant pixels
                 quad_w, quad_h = (x2 - x1), (y2 - y1)
